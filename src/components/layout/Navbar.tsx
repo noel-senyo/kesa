@@ -7,8 +7,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import { CloseIcon, HeartIcon, MenuIcon, SearchIcon, UserIcon } from "@/components/icons";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { categoryHref, menu, type MenuDepartment } from "@/data/menu";
-import { products } from "@/data/products";
-import { productPath } from "@/data/products";
+import { productPath, type Product } from "@/data/products";
+import { useShopper } from "@/lib/shopper";
 import { site } from "@/data/site";
 import { formatPrice } from "@/lib/currency";
 import { cn } from "@/lib/utils";
@@ -192,27 +192,12 @@ function MobileMenu({ onNavigate }: { onNavigate: () => void }) {
           </div>
         );
       })}
-      <div className="mt-6 grid grid-cols-2 gap-2">
-        <Link
-          href="/login"
-          onClick={onNavigate}
-          className="press grid h-[52px] place-items-center rounded-pill bg-fg font-semibold text-bg"
-        >
-          Sign in
-        </Link>
-        <Link
-          href="/register"
-          onClick={onNavigate}
-          className="press grid h-[52px] place-items-center rounded-pill border border-fg font-medium"
-        >
-          Create account
-        </Link>
-      </div>
+      <MobileAccount onNavigate={onNavigate} />
     </nav>
   );
 }
 
-function SearchPanel({ onClose }: { onClose: () => void }) {
+function SearchPanel({ products, onClose }: { products: Product[]; onClose: () => void }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const matches = products.filter((product) =>
@@ -264,8 +249,32 @@ function SearchPanel({ onClose }: { onClose: () => void }) {
   );
 }
 
-export function Navbar() {
+function MobileAccount({ onNavigate }: { onNavigate: () => void }) {
+  const shopper = useShopper();
+
+  return (
+    <div className="mt-6 grid grid-cols-2 gap-2">
+      <Link
+        href={shopper ? "/account" : "/login"}
+        onClick={onNavigate}
+        className="press grid h-[52px] place-items-center rounded-pill bg-fg font-semibold text-bg"
+      >
+        {shopper ? "Account" : "Sign in"}
+      </Link>
+      <Link
+        href={shopper ? "/orders" : "/register"}
+        onClick={onNavigate}
+        className="press grid h-[52px] place-items-center rounded-pill border border-fg font-medium"
+      >
+        {shopper ? "My orders" : "Create account"}
+      </Link>
+    </div>
+  );
+}
+
+export function Navbar({ products }: { products: Product[] }) {
   const pathname = usePathname();
+  const shopper = useShopper();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -306,7 +315,7 @@ export function Navbar() {
           >
             <HeartIcon />
           </Link>
-          <Link href="/login" aria-label="Account" className={iconButton}>
+          <Link href={shopper ? "/account" : "/login"} aria-label="Account" className={iconButton}>
             <UserIcon />
           </Link>
           <ThemeToggle />
@@ -351,7 +360,7 @@ export function Navbar() {
           <MobileMenu onNavigate={() => setMenuOpen(false)} />
         </div>
       ) : null}
-      {searchOpen ? <SearchPanel onClose={() => setSearchOpen(false)} /> : null}
+      {searchOpen ? <SearchPanel products={products} onClose={() => setSearchOpen(false)} /> : null}
     </>
   );
 }

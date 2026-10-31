@@ -1,16 +1,19 @@
 import { HomeBands } from "@/components/home/HomeBands";
 import { HomeHero } from "@/components/home/HomeHero";
-import { products } from "@/data/products";
+import { loadCatalog } from "@/lib/catalog";
 import { site } from "@/data/site";
 
-export default function HomePage() {
-  const featured = products.filter((product) => product.featured);
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const catalog = await loadCatalog();
+  const featured = catalog.filter((product) => product.featured);
 
   return (
     <>
       <h1 className="sr-only">{site.name} — sneakers and clothing</h1>
-      <HomeHero products={featured} />
-      <HomeBands />
+      <HomeHero products={featured.length ? featured : catalog.slice(0, 4)} />
+      <HomeBands products={catalog} />
     </>
   );
 }

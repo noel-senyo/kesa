@@ -8,15 +8,18 @@ import { PasswordField } from "@/components/auth/PasswordField";
 import { buttonClass } from "@/components/ui/button-classes";
 import { Input } from "@/components/ui/input";
 import { saveShopper, useShopper } from "@/lib/shopper";
+import { createBrowserSupabase } from "@/lib/supabase/browser";
+import { isSupabaseConfigured } from "@/lib/supabase/env";
 
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const shopper = useShopper();
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
   const redirect = safePath(searchParams.get("redirect"));
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
@@ -27,9 +30,25 @@ export function LoginForm() {
       return;
     }
 
-    const name = shopper?.email === email && shopper.name ? shopper.name : email.split("@")[0];
-    saveShopper({ name, email });
+    if (!isSupabaseConfigured()) {
+      const name = shopper?.email === email && shopper.name ? shopper.name : email.split("@")[0];
+      saveShopper({ name, email });
+      router.push(redirect);
+      return;
+    }
+
+    const supabase = createBrowserSupabase();
+    if (!supabase) return;
+    setPending(true);
+    const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
+    setPending(false);
+    if (signError) {
+      setError("Invalid email or password");
+      return;
+    }
+    await fetch("/api/account/promote", { method: "POST" });
     router.push(redirect);
+    router.refresh();
   };
 
   return (
@@ -72,8 +91,8 @@ export function LoginForm() {
             />
           </div>
         </div>
-        <button type="submit" className={`${buttonClass()} mt-1.5 w-full text-base`}>
-          Sign in
+        <button type="submit" disabled={pending} className={`${buttonClass()} mt-1.5 w-full text-base`}>
+          {pending ? "Signing in" : "Sign in"}
         </button>
       </form>
     </AuthShell>

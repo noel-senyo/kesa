@@ -1,9 +1,12 @@
 import { Catalog } from "@/components/catalog/Catalog";
-import { banners, products } from "@/data/products";
+import { banners } from "@/data/products";
+import { loadCatalog } from "@/lib/catalog";
 
 export const metadata = { title: "New arrivals" };
 
-export default function NewArrivalsPage() {
+export default async function NewArrivalsPage() {
+  const products = await loadCatalog();
+
   return (
     <Catalog
       title="New arrivals"

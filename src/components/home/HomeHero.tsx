@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { SizePicker } from "@/components/product/SizePicker";
 import { ArrowRightIcon } from "@/components/icons";
 import { menu } from "@/data/menu";
-import { colorOf, productPath, sizesFor, type Product } from "@/data/products";
+import { availableSizes, colorOf, productPath, sizesFor, type Product } from "@/data/products";
 import { formatPrice } from "@/lib/currency";
 import { fitDisplaySize } from "@/lib/display-type";
 import { swatchBackground } from "@/lib/color";
@@ -55,7 +55,8 @@ export function HomeHero({ products }: { products: Product[] }) {
   const word = product.name.split(" ")[0].toUpperCase();
   const wordSize = fitDisplaySize(word, { maxPx: 300, budgetPx: 1100, vwBudget: 90 });
   const sizes = sizesFor(product);
-  const chosen = size && sizes.includes(size) ? size : sizes[Math.min(2, sizes.length - 1)];
+  const stocked = availableSizes(product);
+  const chosen = size && stocked.includes(size) ? size : stocked[Math.min(2, Math.max(stocked.length - 1, 0))] ?? sizes[0];
   const href = `${productPath(product.id)}?size=${encodeURIComponent(chosen)}`;
   const labels = labelFor(product);
   const hold = {
@@ -145,10 +146,10 @@ export function HomeHero({ products }: { products: Product[] }) {
             <span className="ml-auto text-xs">{products.length} colors</span>
           </div>
           <div className="hidden lg:block" style={{ width: sizes.length * 54 - 6 }}>
-            <SizePicker compact options={sizes} available={sizes} value={chosen} onChange={setSize} />
+            <SizePicker compact options={sizes} available={availableSizes(product)} value={chosen} onChange={setSize} />
           </div>
           <div className="lg:hidden">
-            <SizePicker compact options={sizes} available={sizes} value={chosen} onChange={setSize} />
+            <SizePicker compact options={sizes} available={availableSizes(product)} value={chosen} onChange={setSize} />
           </div>
           <Link href={href} className="press inline-flex h-14 items-center justify-center rounded-pill bg-fg px-8 font-semibold text-bg hover:bg-hover">
             View piece

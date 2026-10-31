@@ -1,6 +1,7 @@
 import { Catalog } from "@/components/catalog/Catalog";
 import { menu } from "@/data/menu";
-import { banners, productsFor } from "@/data/products";
+import { banners } from "@/data/products";
+import { loadCatalog } from "@/lib/catalog";
 
 const department = menu.find((item) => item.href === "/clothing")!;
 
@@ -12,6 +13,7 @@ export default async function ClothingPage({
   searchParams: Promise<{ category?: string }>;
 }) {
   const { category } = await searchParams;
+  const products = (await loadCatalog()).filter((product) => product.department === "clothing");
 
   return (
     <Catalog
@@ -19,7 +21,7 @@ export default async function ClothingPage({
       banner={banners.clothing}
       basePath="/clothing"
       categories={department.items}
-      products={productsFor("clothing")}
+      products={products}
       category={category}
     />
   );

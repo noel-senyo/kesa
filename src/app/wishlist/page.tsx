@@ -1,13 +1,13 @@
 import { WishlistCount, WishlistView } from "@/components/account/WishlistView";
-import { products } from "@/data/products";
+import { loadCatalog } from "@/lib/catalog";
 
 export const metadata = {
   title: "Wishlist",
   description: "View the products you saved to your wishlist.",
 };
 
-export default function WishlistPage() {
-  const starters = products.filter((product) => product.featured).slice(0, 4);
+export default async function WishlistPage() {
+  const starters = (await loadCatalog()).filter((product) => product.featured).slice(0, 4);
 
   return (
     <section className="flex flex-col gap-5 pb-24 lg:gap-7">

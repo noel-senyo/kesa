@@ -1,9 +1,9 @@
 import { SectionRow } from "@/components/home/SectionRow";
 import { menu } from "@/data/menu";
-import { departmentOf, products } from "@/data/products";
+import { departmentOf, type Product } from "@/data/products";
 
 /** Giant rows under the hero. Each one links to a department page. */
-export function HomeBands() {
+export function HomeBands({ products }: { products: Product[] }) {
   return (
     <nav aria-label="Browse sections" className="mt-8 border-t border-line">
       {menu.map((department) => {

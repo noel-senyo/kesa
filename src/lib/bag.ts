@@ -14,6 +14,7 @@ const CHANGE = "kesa-bag-change";
 
 let cachedRaw: string | null = null;
 let cachedLines: BagLine[] = [];
+let quiet = false;
 
 function readLines(): BagLine[] {
   const raw = window.localStorage.getItem(KEY);
@@ -39,6 +40,26 @@ function write(lines: BagLine[]) {
   cachedRaw = window.localStorage.getItem(KEY);
   cachedLines = lines;
   window.dispatchEvent(new Event(CHANGE));
+}
+
+export function bagSnapshot() {
+  return readLines().map((line) => ({ ...line }));
+}
+
+export function isBagQuiet() {
+  return quiet;
+}
+
+/** Replaces the cart without sending it back to the account. */
+export function replaceBag(lines: BagLine[]) {
+  quiet = true;
+  write(lines);
+  quiet = false;
+}
+
+export function onBagChange(listener: () => void) {
+  window.addEventListener(CHANGE, listener);
+  return () => window.removeEventListener(CHANGE, listener);
 }
 
 export function addToBag(productId: string, size: string) {

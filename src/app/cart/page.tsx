@@ -1,15 +1,21 @@
 import Link from "@/components/ui/link";
 
 import { CartCount, CartView } from "@/components/account/CartView";
-import { products } from "@/data/products";
+import { loadCatalog } from "@/lib/catalog";
 
 export const metadata = {
   title: "Cart",
   description: "View the products saved in your shopping cart.",
 };
 
-export default function CartPage() {
-  const starters = products.filter((product) => product.featured).slice(0, 4);
+export default async function CartPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ result?: string; order?: string }>;
+}) {
+  const { result, order } = await searchParams;
+  const catalog = await loadCatalog();
+  const starters = catalog.filter((product) => product.featured).slice(0, 4);
 
   return (
     <section className="flex flex-col gap-6 pb-24">
@@ -24,7 +30,7 @@ export default function CartPage() {
         Cart
         <CartCount />
       </h1>
-      <CartView starters={starters} />
+      <CartView starters={starters} catalog={catalog} notice={result} orderNumber={order} />
     </section>
   );
 }

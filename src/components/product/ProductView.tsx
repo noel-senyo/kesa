@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { SizePicker } from "@/components/product/SizePicker";
 import Link from "@/components/ui/link";
 import { menu } from "@/data/menu";
-import { colorOf, sizesFor, type Product } from "@/data/products";
+import { availableSizes, colorOf, sizesFor, type Product } from "@/data/products";
 import { formatPrice } from "@/lib/currency";
 import { swatchBackground } from "@/lib/color";
 import { addToBag } from "@/lib/bag";
@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils";
 export function ProductView({ product, initialSize }: { product: Product; initialSize?: string }) {
   const router = useRouter();
   const sizes = sizesFor(product);
+  const inStock = availableSizes(product);
   const color = colorOf(product);
   const [size, setSize] = useState(
-    initialSize && sizes.includes(initialSize) ? initialSize : sizes[Math.min(2, sizes.length - 1)],
+    initialSize && inStock.includes(initialSize) ? initialSize : inStock[Math.min(2, inStock.length - 1)] ?? sizes[0],
   );
   const [photo, setPhoto] = useState(product.image);
   const department = menu.find((item) => item.href === `/${product.department}`);
@@ -79,29 +80,33 @@ export function ProductView({ product, initialSize }: { product: Product; initia
           <span className="text-sm">
             Size <span className="text-muted">— {size}</span>
           </span>
-          <SizePicker options={sizes} available={sizes} value={size} onChange={setSize} />
+          <SizePicker options={sizes} available={inStock} value={size} onChange={setSize} />
         </div>
 
         <button
           type="button"
+          disabled={!inStock.includes(size)}
           onClick={() => {
+            if (!inStock.includes(size)) return;
             addToBag(product.id, size);
             router.push("/cart");
           }}
-          className="press hidden h-16 items-center justify-center rounded-pill bg-fg text-base font-semibold text-bg hover:bg-hover lg:flex"
+          className="press hidden h-16 items-center justify-center rounded-pill bg-fg text-base font-semibold text-bg hover:bg-hover disabled:opacity-50 lg:flex"
         >
-          Add to cart
+          {inStock.includes(size) ? "Add to cart" : "Out of stock"}
         </button>
         <div className="fixed inset-x-4 bottom-[max(24px,env(safe-area-inset-bottom))] z-30 lg:hidden">
           <button
             type="button"
+            disabled={!inStock.includes(size)}
             onClick={() => {
+              if (!inStock.includes(size)) return;
               addToBag(product.id, size);
               router.push("/cart");
             }}
-            className="press flex h-[60px] w-full items-center justify-center rounded-pill bg-fg text-base font-semibold text-bg"
+            className="press flex h-[60px] w-full items-center justify-center rounded-pill bg-fg text-base font-semibold text-bg disabled:opacity-50"
           >
-            Add to cart
+            {inStock.includes(size) ? "Add to cart" : "Out of stock"}
           </button>
         </div>
 

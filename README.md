@@ -1,6 +1,6 @@
 # noel
 
-A storefront starter that keeps the look of the ecommerce template: condensed headlines, pill controls, photo tiles, and the same light and dark themes. The database, login, cart, and payments are not included.
+A storefront for clothing and shoes. The shop window still reads from `src/data/products.ts` until Supabase is connected. After that, accounts, stock, orders, Moolre payments, Resend email, and Taysend SMS use the keys in `.env.example`.
 
 The shop name lives in one file, so renaming the project is a single edit.
 
@@ -30,6 +30,20 @@ npx next dev -p 3001
 | Photos | `public/images/` |
 
 Prices in `src/data/products.ts` are plain numbers of Ghana cedis. `formatPrice` turns `450` into `GH₵ 450.00`.
+
+## Accounts, stock, and orders
+
+Copy `.env.example` to `.env.local` and fill in the Supabase URL, anon key, and service role key. Run `supabase/migrations/001_shop.sql` in the Supabase SQL editor, then:
+
+```bash
+npm run seed
+```
+
+That copies the file catalog into the database and leaves any stock counts you have already changed. Register with a Ghana phone number. Set `ADMIN_EMAIL` to that address and sign in at `/admin/login` to edit price, stock, and whether a piece is hidden. A size with stock of zero cannot be added to the cart.
+
+Checkout at `/checkout` saves an unpaid order. The customer can open it from My orders. Stock does not change until Moolre sends a successful callback to `/api/payments/moolre`.
+
+Set the Moolre callback URL to `https://YOUR-DOMAIN/api/payments/moolre`. Sandbox requests use `https://sandbox.moolre.com`. Add `MOOLRE_API_USER`, `MOOLRE_PUBLIC_KEY`, and `MOOLRE_WEBHOOK_SECRET`. A repeated success callback does not reduce stock twice. After the order is paid, Resend emails the order and Taysend sends one SMS. A missed message is written to `notify_log` and does not undo the payment.
 
 ## Images
 

@@ -13,6 +13,10 @@ export type Product = {
   hoverImage: string;
   /** Shown in the homepage carousel. */
   featured?: boolean;
+  color?: string;
+  hidden?: boolean;
+  /** Pieces on hand for each size. Missing means the file catalog, where every size can be chosen. */
+  stock?: Record<string, number>;
 };
 
 export const products: Product[] = [
@@ -288,6 +292,13 @@ export function sizesFor(product: Product): string[] {
   return ["XS", "S", "M", "L", "XL", "XXL"];
 }
 
+/** Sizes with stock above zero. A file product with no stock map still offers every size. */
+export function availableSizes(product: Product) {
+  const sizes = sizesFor(product);
+  if (!product.stock) return sizes;
+  return sizes.filter((size) => (product.stock?.[size] ?? 0) > 0);
+}
+
 const colors: Record<string, string> = {
   "pace-runner": "Grey",
   "night-runner": "Black",
@@ -318,5 +329,5 @@ const colors: Record<string, string> = {
 };
 
 export function colorOf(product: Product) {
-  return colors[product.id] ?? "Black";
+  return product.color ?? colors[product.id] ?? "Black";
 }

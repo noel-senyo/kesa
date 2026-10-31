@@ -5,22 +5,44 @@ import Link from "@/components/ui/link";
 
 import { Starters } from "@/components/account/Starters";
 import { buttonClass } from "@/components/ui/button-classes";
-import { findProduct, productPath, type Product } from "@/data/products";
+import { productPath, type Product } from "@/data/products";
 import { formatPrice } from "@/lib/currency";
 import { removeFromBag, useBag } from "@/lib/bag";
 import { useShopper } from "@/lib/shopper";
 
-export function CartView({ starters }: { starters: Product[] }) {
+export function CartView({
+  starters,
+  catalog,
+  notice,
+  orderNumber,
+}: {
+  starters: Product[];
+  catalog: Product[];
+  notice?: string;
+  orderNumber?: string;
+}) {
   const shopper = useShopper();
   const lines = useBag();
   const filled = lines
-    .map((line) => ({ line, product: findProduct(line.productId) }))
+    .map((line) => ({ line, product: catalog.find((product) => product.id === line.productId) }))
     .filter((entry): entry is { line: (typeof lines)[number]; product: Product } => Boolean(entry.product));
+
+  const paymentNote =
+    notice === "paid" ? (
+      <p role="status" className="rounded-field bg-fg px-4 py-3 text-sm text-bg lg:col-span-2">
+        Payment received{orderNumber ? ` for ${orderNumber}` : ""}. The order is confirmed.
+      </p>
+    ) : notice === "failed" ? (
+      <p role="alert" className="rounded-field bg-err-bg px-4 py-3 text-sm text-err-fg lg:col-span-2">
+        Payment failed{orderNumber ? ` for ${orderNumber}` : ""}. Stock was not changed. Try again from My orders.
+      </p>
+    ) : null;
 
   if (filled.length > 0) {
     const total = filled.reduce((sum, entry) => sum + entry.product.price * entry.line.quantity, 0);
     return (
       <div className="grid items-start gap-12 border-t border-line pt-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        {paymentNote}
         <div className="flex flex-col">
           {filled.map(({ line, product }) => (
             <article key={`${line.productId}-${line.size}`} className="grid grid-cols-[80px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line py-3 lg:grid-cols-[150px_minmax(0,1fr)_auto] lg:gap-6 lg:py-5">
@@ -45,7 +67,16 @@ export function CartView({ starters }: { starters: Product[] }) {
             <span className="font-medium">Total</span>
             <span className="font-display-75 text-[40px] leading-none">{formatPrice(total)}</span>
           </div>
-          <p className="text-sm text-muted">Checkout is not connected yet. The pieces stay in this browser.</p>
+          {shopper ? (
+            <Link href="/checkout" className={buttonClass()}>
+              Checkout
+            </Link>
+          ) : (
+            <Link href="/login?redirect=/checkout" className={buttonClass()}>
+              Sign in to checkout
+            </Link>
+          )}
+          <p className="text-sm text-muted">Placing an order saves it as unpaid. Stock changes after payment is confirmed.</p>
         </aside>
       </div>
     );
@@ -53,6 +84,8 @@ export function CartView({ starters }: { starters: Product[] }) {
 
   if (!shopper) {
     return (
+      <div className="flex flex-col gap-6">
+      {paymentNote}
       <EmptyCart
         title="Your cart is empty"
         body="Not registered? You must be in order to save your products in the shopping cart."
@@ -68,10 +101,13 @@ export function CartView({ starters }: { starters: Product[] }) {
         }
         starters={starters}
       />
+      </div>
     );
   }
 
   return (
+    <div className="flex flex-col gap-6">
+    {paymentNote}
     <EmptyCart
       title="Your cart is empty"
       body="Anything you add shows up here, ready for checkout."
@@ -87,6 +123,7 @@ export function CartView({ starters }: { starters: Product[] }) {
       }
       starters={starters}
     />
+    </div>
   );
 }
 

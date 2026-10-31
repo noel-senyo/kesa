@@ -1,15 +1,13 @@
 import { notFound } from "next/navigation";
 
 import { ProductView } from "@/components/product/ProductView";
-import { findProduct, products } from "@/data/products";
+import { loadProduct } from "@/lib/catalog";
 
-export function generateStaticParams() {
-  return products.map((product) => ({ id: product.id }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const product = findProduct(id);
+  const product = await loadProduct(id);
   return { title: product?.name ?? "Piece" };
 }
 
@@ -22,7 +20,7 @@ export default async function ProductPage({
 }) {
   const { id } = await params;
   const { size } = await searchParams;
-  const product = findProduct(id);
+  const product = await loadProduct(id);
   if (!product) notFound();
 
   return <ProductView product={product} initialSize={size} />;
