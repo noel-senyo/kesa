@@ -1,32 +1,46 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { AuthShell } from "@/components/auth/AuthShell";
 import { PasswordField } from "@/components/auth/PasswordField";
+import Link from "@/components/ui/link";
 import { buttonClass } from "@/components/ui/button-classes";
 import { Input } from "@/components/ui/input";
 import { saveShopper, useShopper } from "@/lib/shopper";
 import { createBrowserSupabase } from "@/lib/supabase/browser";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 
+type Door = "client" | "staff";
+
 export function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const shopper = useShopper();
-  const [error, setError] = useState<string | null>(null);
-  const [pending, setPending] = useState(false);
+  const [door, setDoor] = useState<Door>("client");
+  const [clientError, setClientError] = useState<string | null>(null);
+  const [staffError, setStaffError] = useState<string | null>(null);
+  const [pending, setPending] = useState<Door | null>(null);
   const redirect = safePath(searchParams.get("redirect"));
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    if (window.location.hash === "#staff") setDoor("staff");
+  }, []);
+
+  const show = (next: Door) => {
+    setDoor(next);
+    const params = redirect === "/" ? "" : `?redirect=${encodeURIComponent(redirect)}`;
+    window.history.replaceState(null, "", `/login${params}${next === "staff" ? "#staff" : ""}`);
+  };
+
+  const handleClient = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
     const email = String(data.get("email") ?? "").trim();
     const password = String(data.get("password") ?? "");
 
     if (!email || !password) {
-      setError("Invalid email or password");
+      setClientError("Invalid email or password");
       return;
     }
 
@@ -39,11 +53,11 @@ export function LoginForm() {
 
     const supabase = createBrowserSupabase();
     if (!supabase) return;
-    setPending(true);
+    setPending("client");
     const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
-    setPending(false);
+    setPending(null);
     if (signError) {
-      setError("Invalid email or password");
+      setClientError("Invalid email or password");
       return;
     }
     await fetch("/api/account/promote", { method: "POST" });
@@ -51,51 +65,153 @@ export function LoginForm() {
     router.refresh();
   };
 
+  const handleStaff = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const email = String(data.get("email") ?? "").trim();
+    const password = String(data.get("password") ?? "");
+    const supabase = createBrowserSupabase();
+    if (!supabase) {
+      setStaffError("Add the Supabase URL and anon key first.");
+      return;
+    }
+    if (!email || !password) {
+      setStaffError("Invalid email or password");
+      return;
+    }
+    setPending("staff");
+    const { error: signError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signError) {
+      setPending(null);
+      setStaffError("Invalid email or password");
+      return;
+    }
+    await fetch("/api/account/promote", { method: "POST" });
+    const { data: userData } = await supabase.auth.getUser();
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userData.user?.id ?? "")
+      .maybeSingle();
+    if (profile?.role !== "admin") {
+      await supabase.auth.signOut();
+      setPending(null);
+      setStaffError("This account cannot open the dashboard.");
+      return;
+    }
+    router.push("/admin");
+    router.refresh();
+  };
+
+  const registerHref = redirect === "/" ? "/register" : `/register?redirect=${encodeURIComponent(redirect)}`;
+  const client = door === "client";
+
   return (
-    <AuthShell
-      word="Hello again"
-      title="Welcome back"
-      description="Sign in with your email and password to access your account."
-      footerText="Don't have an account?"
-      footerHref={redirect === "/" ? "/register" : `/register?redirect=${encodeURIComponent(redirect)}`}
-      footerLinkLabel="Create one here"
-    >
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit} noValidate>
-        {error ? <FormError message={error} /> : null}
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="login-email" className="text-sm font-medium">
-              Email
-            </label>
-            <Input
-              id="login-email"
-              name="email"
-              type="email"
-              placeholder="name@example.com"
-              autoComplete="email"
-              required
-              aria-invalid={Boolean(error) || undefined}
-              defaultValue={shopper?.email}
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="login-password" className="text-sm font-medium">
-              Password
-            </label>
-            <PasswordField
-              id="login-password"
-              name="password"
-              autoComplete="current-password"
-              required
-              aria-invalid={Boolean(error) || undefined}
-            />
-          </div>
-        </div>
-        <button type="submit" disabled={pending} className={`${buttonClass()} mt-1.5 w-full text-base`}>
-          {pending ? "Signing in" : "Sign in"}
+    <section className="mx-auto flex w-full max-w-[460px] flex-col justify-center">
+      <span aria-hidden="true" className="mb-6 font-display text-[88px] leading-[0.8] lg:hidden">
+        Hello again
+      </span>
+      <div className="mb-6 grid grid-cols-2 gap-2" role="tablist" aria-label="Sign in as">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={client}
+          onClick={() => show("client")}
+          className={doorClass(client)}
+        >
+          Client
         </button>
-      </form>
-    </AuthShell>
+        <button
+          type="button"
+          role="tab"
+          id="staff"
+          aria-selected={!client}
+          onClick={() => show("staff")}
+          className={doorClass(!client)}
+        >
+          Staff
+        </button>
+      </div>
+      <h1 className="text-[30px] font-semibold tracking-[-0.02em]">{client ? "Welcome back" : "Dashboard"}</h1>
+      <p className="mb-6 mt-1.5 text-muted">
+        {client
+          ? "Sign in with your email and password to access your account."
+          : "Staff sign-in opens the inventory."}
+      </p>
+      {client ? (
+        <>
+          <form className="flex flex-col gap-4" onSubmit={handleClient} noValidate>
+            {clientError ? <FormError message={clientError} /> : null}
+            <Fields idPrefix="client" emailDefault={shopper?.email} invalid={Boolean(clientError)} />
+            <button type="submit" disabled={pending !== null} className={`${buttonClass()} mt-1.5 w-full text-base`}>
+              {pending === "client" ? "Signing in" : "Sign in"}
+            </button>
+          </form>
+          <p className="mt-6 text-sm">
+            Don&apos;t have an account?{" "}
+            <Link href={registerHref} className="font-semibold underline underline-offset-[3px]">
+              Create one here
+            </Link>
+          </p>
+        </>
+      ) : (
+        <form className="flex flex-col gap-4" onSubmit={handleStaff} noValidate>
+          {staffError ? <FormError message={staffError} /> : null}
+          <Fields idPrefix="staff" invalid={Boolean(staffError)} />
+          <button type="submit" disabled={pending !== null} className={`${buttonClass()} mt-1.5 w-full text-base`}>
+            {pending === "staff" ? "Signing in" : "Sign in to dashboard"}
+          </button>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function doorClass(selected: boolean) {
+  return selected
+    ? "press h-14 rounded-pill bg-fg text-base font-semibold text-bg"
+    : "press h-14 rounded-pill border border-fg text-base font-semibold";
+}
+
+function Fields({
+  idPrefix,
+  emailDefault,
+  invalid,
+}: {
+  idPrefix: string;
+  emailDefault?: string;
+  invalid: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${idPrefix}-email`} className="text-sm font-medium">
+          Email
+        </label>
+        <Input
+          id={`${idPrefix}-email`}
+          name="email"
+          type="email"
+          placeholder="name@example.com"
+          autoComplete={idPrefix === "staff" ? "username" : "email"}
+          required
+          aria-invalid={invalid || undefined}
+          defaultValue={emailDefault}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={`${idPrefix}-password`} className="text-sm font-medium">
+          Password
+        </label>
+        <PasswordField
+          id={`${idPrefix}-password`}
+          name="password"
+          autoComplete="current-password"
+          required
+          aria-invalid={invalid || undefined}
+        />
+      </div>
+    </div>
   );
 }
 

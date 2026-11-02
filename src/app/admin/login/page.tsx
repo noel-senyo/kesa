@@ -1,13 +1,5 @@
-import { Suspense } from "react";
-
-import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
-
-export const metadata = { title: "Admin sign in" };
+import { redirect } from "next/navigation";
 
 export default function AdminLoginPage() {
-  return (
-    <Suspense>
-      <AdminLoginForm />
-    </Suspense>
-  );
+  redirect("/login#staff");
 }

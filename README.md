@@ -1,6 +1,6 @@
-# noel
+# Plug.HQ
 
-A storefront for clothing and shoes. The shop window still reads from `src/data/products.ts` until Supabase is connected. After that, accounts, stock, orders, Moolre payments, Resend email, and Taysend SMS use the keys in `.env.example`.
+A storefront for clothing and shoes. The shop window still reads from `src/data/products.ts` until Supabase is connected. After that, accounts, stock, orders, Moolre payments, Resend email, and Taysend SMS use the keys in `.env.local` on this computer.
 
 The shop name lives in one file, so renaming the project is a single edit.
 
@@ -33,7 +33,7 @@ Prices in `src/data/products.ts` are plain numbers of Ghana cedis. `formatPrice`
 
 ## Accounts, stock, and orders
 
-Copy `.env.example` to `.env.local` and fill in the Supabase URL, anon key, and service role key. Run `supabase/migrations/001_shop.sql` in the Supabase SQL editor, then:
+Fill in `.env.local` with the Supabase URL, anon key, and service role key. Run `supabase/migrations/001_shop.sql` in the Supabase SQL editor, then:
 
 ```bash
 npm run seed

@@ -5,5 +5,4 @@ out
 *.log
 .env
 .env.*
-!.env.example
 tsconfig.tsbuildinfo
